@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// skibidi
 // сколько в среднем спим при эмуляции работы
 const AvgSleep = 50
 
