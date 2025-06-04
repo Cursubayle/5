@@ -11,7 +11,6 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
-	"strings"
 )
 
 func CreateHTTPwrapper(decl string) {
@@ -44,41 +43,72 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	container := ""
-	bufStruct := ""
+	container := make(map[string]string)
+	// bufStruct := ""
 	for _, decl := range f.Decls {
-		//проверяем является ли decl дженерик обьявлением  import, constant, type or variable declaration
+		//проходим по всем декларациям
+		//если дженерик является структурой добавляем ключ в карту
 		genDecl, ok := decl.(*ast.GenDecl)
-		if ok {
+		if ok && genDecl.Tok == token.TYPE {
 			for _, spec := range genDecl.Specs {
 				typeSpec, ok := spec.(*ast.TypeSpec)
 				if ok {
 					if structType, ok := typeSpec.Type.(*ast.StructType); ok {
-						structStr := structToString(typeSpec.Name.Name, structType)
-						// если в название структуры есть ключевое своло Api контейнер перезаписывается
-						switch {
-						case strings.Contains(typeSpec.Name.Name, "Api"):
-							bufStruct = typeSpec.Name.Name
-							container = structStr
-						default:
-							container = container + "\n" + structStr
-						}
-
-					} // нужно записать структуры относящиеся к определенному апи
+						structType := structToString(typeSpec.Name.Name, structType)
+						// println(structType, typeSpec.Name.Name)
+						container[structType] = typeSpec.Name.Name
+					}
 				}
 			}
+			// println("there is an stuct")
 		}
-		funcDecl, ok := decl.(*ast.FuncDecl) //проверяем является ли обьявление функцией
-		if ok && funcDecl.Recv != nil {
-			for _, field := range funcDecl.Recv.List {
-				if starExpr, ok := field.Type.(*ast.StarExpr); ok {
-					if ident, ok := starExpr.X.(*ast.Ident); ok && ident.Name == bufStruct {
-						fmt.Printf("Method %s is associated with struct:%s (pointer receiver)\n", funcDecl.Name.Name, bufStruct)
-					} // вышло отследить методы относящиеся к читаемой в данный момент структуре
-
-				}
-			}
-
-		}
+		//если функция добавляем ее по ключу в карту
+		// funcDecl, ok := decl.(*ast.FuncDecl)
+		// if ok {
+		// }
 	}
+	for key := range container {
+		println("key is: ", key)
+		println("value is: ", container[key])
+	}
+	// 	//проверяем является ли decl дженерик обьявлением  import, constant, type or variable declaration
+	// 	genDecl, ok := decl.(*ast.GenDecl)
+	// 	if ok {
+	// 		for _, spec := range genDecl.Specs {
+	// 			typeSpec, ok := spec.(*ast.TypeSpec)
+	// 			if ok {
+	// 				if structType, ok := typeSpec.Type.(*ast.StructType); ok {
+	// 					structStr := structToString(typeSpec.Name.Name, structType)
+	// 					// при обнаружении структуры идем по файлу и ищем все функции
+	// 					for _, decl := range f.Decls {
+	// 						funcDecl, ok := decl.(*ast.FuncDecl) //проверяем является ли обьявление функцией
+	// 						if ok && funcDecl.Recv != nil {
+	// 							for _, field := range funcDecl.Recv.List {
+	// 								if starExpr, ok := field.Type.(*ast.StarExpr); ok {
+	// 									if ident, ok := starExpr.X.(*ast.Ident); ok && ident.Name == bufStruct {
+	// 										fmt.Printf("Method %s is associated with struct:%s (pointer receiver)\n", funcDecl.Name.Name, bufStruct)
+
+	// 									}
+
+	// 								} // нужно записать структуры относящиеся к определенному апи
+	// 							}
+	// 						}
+
+	// 					}
+
+	// 					// если в название структуры есть ключевое своло Api контейнер перезаписывается
+	// 					switch {
+	// 					case strings.Contains(typeSpec.Name.Name, "Api"):
+	// 						bufStruct = typeSpec.Name.Name
+	// 						container = structStr
+	// 					default:
+	// 						container = container + "\n" + structStr
+	// 					}
+	// 				} // вышло отследить методы относящиеся к читаемой в данный момент структуре
+
+	// 			}
+	// 		}
+
+	// 	}
+	// }
 }
